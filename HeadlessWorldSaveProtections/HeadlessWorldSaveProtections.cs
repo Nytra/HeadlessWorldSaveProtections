@@ -24,7 +24,7 @@ namespace HeadlessWorldSaveProtections
                 harmony.PatchAll();
 
                 MethodInfo logOriginal = AccessTools.DeclaredMethod(typeof(UniLog), "Log", new Type[] { typeof(string), typeof(bool) });
-                MethodInfo logPostfix = AccessTools.DeclaredMethod(typeof(UniLogLogPatch), nameof(UniLogLogPatch.Postfix));
+                MethodInfo logPostfix = AccessTools.DeclaredMethod(typeof(UniLog_Log_Patch), nameof(UniLog_Log_Patch.Postfix));
                 harmony.Patch(logOriginal, postfix: new HarmonyMethod(logPostfix));
             }
         }
