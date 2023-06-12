@@ -44,7 +44,7 @@ namespace HeadlessWorldSaveProtections
 		{
 			public static bool Prefix(World world, FrooxEngine.Record record, RecordOwnerTransferer transferer)
 			{
-				Msg("World is saving. Setting session to private and disabling away kick.");
+				Msg($"World \"{world.Name}\" is saving. Setting access level to private and disabling away kick.");
 
 				if (!worldInfoMap.ContainsKey(world))
 				{
@@ -71,9 +71,9 @@ namespace HeadlessWorldSaveProtections
 					{
 						FrooxEngine.Record r = world.CorrespondingRecord;
 
-						if (message.Contains($"World Saved! Name: {r.Name}. RecordId: {r.OwnerId}:{r.RecordId}"))
+						if (message.StartsWith($"World Saved! Name: {r.Name}. RecordId: {r.OwnerId}:{r.RecordId}"))
 						{
-							Msg($"World \"{world.Name}\" finished saving. Restoring session config.");
+							Msg($"World \"{world.Name}\" finished saving. Restoring previous access level and away kick.");
 							world.AccessLevel = worldInfoMap[world].prevAccessLevel;
 							world.AwayKickEnabled = worldInfoMap[world].prevAwayKickEnabled;
 							worldInfoMap.Remove(world);
