@@ -1,12 +1,12 @@
 ﻿using HarmonyLib;
 using NeosModLoader;
 using FrooxEngine;
-using BaseX;
 using CloudX.Shared;
 using System.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 
 namespace HeadlessWorldSaveProtections
 {
@@ -25,9 +25,11 @@ namespace HeadlessWorldSaveProtections
 			{
 				harmony.PatchAll();
 
-				MethodInfo logOriginal = AccessTools.DeclaredMethod(typeof(UniLog), "Log", new Type[] { typeof(string), typeof(bool) });
-				MethodInfo logPostfix = AccessTools.DeclaredMethod(typeof(UniLog_Log_Patch), nameof(UniLog_Log_Patch.Postfix));
-				harmony.Patch(logOriginal, postfix: new HarmonyMethod(logPostfix));
+				Type stateMachineType = AccessTools.TypeByName("FrooxEngine.Userspace+<SaveWorldTask>d__207");
+				MethodInfo moveNext = stateMachineType.GetMethod("MoveNext", BindingFlags.NonPublic | BindingFlags.Instance);
+				MethodInfo moveNextPostfix = AccessTools.DeclaredMethod(typeof(Userspace_SaveWorldTask_MoveNext_Patch), nameof(Userspace_SaveWorldTask_MoveNext_Patch.Postfix));
+				MethodInfo moveNextTranspiler = AccessTools.DeclaredMethod(typeof(Userspace_SaveWorldTask_MoveNext_Patch), nameof(Userspace_SaveWorldTask_MoveNext_Patch.Transpiler));
+				harmony.Patch(moveNext, postfix: new HarmonyMethod(moveNextPostfix), transpiler: new HarmonyMethod(moveNextTranspiler));
 			}
 		}
 
@@ -36,6 +38,8 @@ namespace HeadlessWorldSaveProtections
 			public SessionAccessLevel prevAccessLevel;
 			public bool prevAwayKickEnabled;
 		}
+
+		private static bool doneSaving = false;
 
 		private static Dictionary<World, WorldInfo> worldInfoMap = new Dictionary<World, WorldInfo>();
 
@@ -61,25 +65,42 @@ namespace HeadlessWorldSaveProtections
 			}
 		}
 
-		class UniLog_Log_Patch
+		class Userspace_SaveWorldTask_MoveNext_Patch
 		{
-			public static void Postfix(string message, bool stackTrace)
+			public static void Postfix(World ___world)
 			{
-				if (message.StartsWith("World Saved! Name: ") && message.Contains(". RecordId: ") && message.Contains(". Local: ") && message.Contains(", Global: "))
+				//Msg("Postfix");
+				if (doneSaving)
 				{
-					foreach(World world in worldInfoMap.Keys.ToList())
-					{
-						FrooxEngine.Record r = world.CorrespondingRecord;
+					Msg($"World \"{___world.Name}\" finished saving. Restoring previous access level and away kick.");
+					___world.AccessLevel = worldInfoMap[___world].prevAccessLevel;
+					___world.AwayKickEnabled = worldInfoMap[___world].prevAwayKickEnabled;
+					worldInfoMap.Remove(___world);
+					doneSaving = false;
+				}
+			}
 
-						if (message.StartsWith($"World Saved! Name: {r.Name}. RecordId: {r.OwnerId}:{r.RecordId}"))
-						{
-							Msg($"World \"{world.Name}\" finished saving. Restoring previous access level and away kick.");
-							world.AccessLevel = worldInfoMap[world].prevAccessLevel;
-							world.AwayKickEnabled = worldInfoMap[world].prevAwayKickEnabled;
-							worldInfoMap.Remove(world);
-						}
+			public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+			{
+				var codes = new List<CodeInstruction>(instructions);
+				for (var i = 0; i < codes.Count; i++)
+				{
+					if (codes[i].opcode == OpCodes.Ldstr && (string)codes[i].operand == "Finished save world: ")
+					{
+						Msg("Found string! Inserting method call!");
+						var instructionsToInsert = new List<CodeInstruction>();
+						instructionsToInsert.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Userspace_SaveWorldTask_MoveNext_Patch), nameof(Userspace_SaveWorldTask_MoveNext_Patch.FinishedSavingWorld))));
+						codes.InsertRange(i, instructionsToInsert);
+						break;
 					}
 				}
+				return codes.AsEnumerable();
+			}
+
+			public static void FinishedSavingWorld()
+			{
+				//Msg($"Finished saving a world!");
+				doneSaving = true;
 			}
 		}
 	}
