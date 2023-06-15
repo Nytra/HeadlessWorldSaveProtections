@@ -89,7 +89,7 @@ namespace HeadlessWorldSaveProtections
 					{
 						Msg("Found string! Inserting method call!");
 						var instructionsToInsert = new List<CodeInstruction>();
-						instructionsToInsert.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Userspace_SaveWorldTask_MoveNext_Patch), nameof(Userspace_SaveWorldTask_MoveNext_Patch.FinishedSavingWorld))));
+						instructionsToInsert.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Userspace_SaveWorldTask_MoveNext_Patch), "FinishedSavingWorld")));
 						codes.InsertRange(i, instructionsToInsert);
 						break;
 					}
@@ -99,7 +99,6 @@ namespace HeadlessWorldSaveProtections
 
 			public static void FinishedSavingWorld()
 			{
-				//Msg($"Finished saving a world!");
 				doneSaving = true;
 			}
 		}
