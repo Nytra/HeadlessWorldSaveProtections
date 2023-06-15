@@ -1,6 +1,6 @@
 # HeadlessWorldSaveProtections
 
-A [NeosModLoader](https://github.com/zkxs/NeosModLoader) mod for [Neos VR](https://neos.com/) Headless Client that sets world access level to private and disables away kick while the world is saving. This is to reduce the likelihood of crashing by users joining or leaving while the world is saving.
+A [NeosModLoader](https://github.com/zkxs/NeosModLoader) mod for [Neos VR](https://neos.com/) Headless Client that sets world access level to private and disables away kick while the world is saving. This is to reduce the likelihood of crashing by users joining or leaving while the world is saving. The previous access level and away kick setting will be restored once saving finishes.
 
 ## Installation
 1. Install [NeosModLoader](https://github.com/zkxs/NeosModLoader).
